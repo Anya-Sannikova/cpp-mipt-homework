@@ -1,124 +1,53 @@
-/*
-    Программа разделена на две единицы трансляции. Для компиляции используйте:
-
-        gcc main.c dynarray.c
-
-    Для тестирования одной функции:
-
-        gcc -DTEST_SHRINK_TO_FIT main.c dynarray.c
-
-    Для тестирования всех функций:
-
-        gcc -DTEST_ALL main.c dynarray.c
-
-*/
-
 #include <stdio.h>
-#include "dynarray.h"
+#include "list.h"
 
-int main() 
+int main()
 {
-    Dynarray a;
-    init(&a, 0);
-    for (size_t i = 0; i < 10; ++i)
-    {
-        push_back(&a, i);
-    }
-    printf("Initial dynarray: ");
-    print(&a);
+    List a = init(0);
 
-#if defined(TEST_POP_BACK) || defined(TEST_ALL)
+    for (int i = 0; i < 5; ++i)
+        push_back(&a, 10 * (i + 1));
+    for (int i = 0; i < 5; ++i)
+        push_front(&a, 100 * (i + 1));
+    print(&a);                          // Напечатает 500 400 300 200 100 10 20 30 40 50
 
-    printf("==================== TEST_POP_BACK ====================\n");
-    for (size_t i = 0; i < 3; ++i)
-    {
-        int result = pop_back(&a);
-        printf("Extracted %i\n", result);
-    }
-    printf("Dynarray after pop_back test: ");
-    print(&a);
+    printf("%i\n", pop_front(&a));      // Напечатает 500
+    printf("%i\n", pop_back(&a));       // Напечатает 50
+    print(&a);                          // Напечатает 400 300 200 100 10 20 30 40
 
-#endif
+    Node* p = a.head;                   // p -> 400
+    advance(&p, 3);                     // p -> 100
+    p = erase(&a, p);                   // ИСПРАВЛЕНО: было erase(a, p), нужен адрес &a. p -> 10
+    print(&a);                          // Напечатает 400 300 200 10 20 30 40
 
-#if defined(TEST_RESIZE) || defined(TEST_ALL)
+    List b = init(0);
+    for (int i = 0; i < 3; ++i)
+        push_back(&b, 1000 * (i + 1));  // ИСПРАВЛЕНО: было push_back(&a, ...), заполняем список b
+    splice(&a, p, &b);                  // вставляем b в a перед узлом 10
 
-    printf("==================== TEST_RESIZE ====================\n");
-    printf("Size and capacity before resize: %zu %zu\n", a.size, a.capacity);
-    resize(&a, 3);
-    printf("Size and capacity after resize:  %zu %zu\n", a.size, a.capacity);
-    printf("Dynarray after resize test: ");
-    print(&a);
+    print(&a);                          // Напечатает 400 300 200 1000 2000 3000 10 20 30 40
+    print(&b);                          // Ничего не напечатает (пустая строка)
 
-#endif
+    // ---- дополнительные проверки ----
+    printf("size a = %zu, size b = %zu\n", a.size, b.size);       // 10 и 0
 
-#if defined(TEST_RESIZE) || defined(TEST_ALL)
+    Node* q = a.head;
+    advance(&q, 100);                   // дальше конца - NULL
+    printf("advance(100) -> %s\n", q == NULL ? "NULL" : "не NULL");
 
-    printf("==================== TEST_RESIZE (grow) ====================\n");
-    resize(&a, 6);
-    printf("Size and capacity after resize to 6: %zu %zu\n", a.size, a.capacity);
-    printf("New elements must be zeros: ");
-    print(&a);
-    resize(&a, 3);
+    q = a.tail;
+    q = erase(&a, q);                   // удаление хвоста возвращает NULL
+    printf("erase(tail) -> %s, tail = %i\n", q == NULL ? "NULL" : "не NULL", a.tail->value);
 
-#endif
+    q = erase(&a, a.head);              // удаление головы
+    printf("после erase(head): head = %i, size = %zu\n", a.head->value, a.size);
 
-#if defined(TEST_SHRINK_TO_FIT) || defined(TEST_ALL)
-
-    printf("==================== TEST_SHRINK_TO_FIT ====================\n");
-    printf("Size and capacity before shrink_to_fit: %zu %zu\n", a.size, a.capacity);
-    shrink_to_fit(&a);
-    printf("Size and capacity after shrink_to_fit:  %zu %zu\n", a.size, a.capacity);
-    printf("Dynarray after shrink_to_fit test: ");
-    print(&a);
-
-#endif
-
-#if defined(TEST_SHALLOW_COPY) || defined(TEST_ALL)
-
-    printf("==================== TEST_SHALLOW_COPY ====================\n");
-    Dynarray b = shallow_copy(&a);
-    printf("Dynarray a: ");
-    print(&a);
-
-    printf("Dynarray b (shallow copy): ");
-    print(&b);
-
-    printf("Adding 10 to all elements of dynarray a\n");
-    for (size_t i = 0; i < a.size; ++i)
-        set(&a, i, get(&a, i) + 10);
-
-    printf("Dynarray a: ");
-    print(&a);
-
-    printf("Dynarray b (shallow copy): ");
-    print(&b);
-
-#endif
-
-#if defined(TEST_DEEP_COPY) || defined(TEST_ALL)
-
-    printf("==================== TEST_DEEP_COPY ====================\n");
-    Dynarray c = deep_copy(&a);
-    printf("Dynarray a: ");
-    print(&a);
-
-    printf("Dynarray c (deep copy): ");
+    List c = init(3);                   // 0 0 0
+    splice(&c, NULL, &a);               // p == NULL - вставка в конец
     print(&c);
-
-    printf("Adding 10 to all elements of dynarray a\n");
-    for (size_t i = 0; i < a.size; ++i)
-        set(&a, i, get(&a, i) + 10);
-    
-    printf("Dynarray a: ");
+    splice(&a, a.head, &c);             // a пуст (head == NULL): вставка в пустой список
     print(&a);
 
-    printf("Dynarray c (deep copy): ");
-    print(&c);
-
-    destroy(&c);
-
-#endif
-
-    destroy(&a);
-    printf("Done\n");
+    destroy(&a); destroy(&b); destroy(&c);
+    return 0;
 }
