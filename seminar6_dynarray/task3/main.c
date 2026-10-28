@@ -2,7 +2,7 @@
 
 int main()
 {
-#ifdef DOG              // препроцессор оставит только одну из веток; вторая вообще не попадёт в компиляцию
+#ifdef DOG    
     printf("Dog!\n");
 #else
     printf("No dog!\n");
