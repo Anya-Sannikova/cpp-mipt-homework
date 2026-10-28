@@ -2,11 +2,11 @@
 
 int main()
 {
-#ifndef COUNT                       // COUNT не передали через -DCOUNT=...
+#ifndef COUNT                      
     printf("No count!\n");
-#elif COUNT > 100                   // ветка выбирается ещё на этапе препроцессора
+#elif COUNT > 100                   
     printf("Count is too large!\n");
-#elif defined(REVERSE)              // defined(X) - проверка, определён ли макрос
+#elif defined(REVERSE)              
     for (int i = COUNT; i >= 1; --i)
         printf("%i ", i);
     printf("\n");
